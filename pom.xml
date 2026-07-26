@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.jrobertgardzinski</groupId>
+    <artifactId>infrastructure-spring-outbox</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <!--
+      Spring wiring for the framework-free transactional-outbox, the same split as
+      adjustable-clock + infrastructure-micronaut-clock: the core knows nothing about this module,
+      so a Micronaut or Quarkus service can use the outbox without a line of Spring on its
+      classpath, and a Spring service does not have to re-derive the three things that are fiddly
+      to get right — reaching the connection bound to the ambient transaction, deferring the send
+      until after the commit, and running the republisher on a schedule.
+
+      Spring is `provided`: the consuming service brings the runtime (it is a Spring Boot app by
+      definition), and this module must not be the thing that decides which Spring version it runs.
+    -->
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- the Spring Framework version behind Spring Boot 3.5.x, the estate's Boot line -->
+        <spring.version>6.2.8</spring.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <!-- the framework-free outbox this module adapts to Spring -->
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>transactional-outbox</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- compile-time only: DataSourceUtils, TransactionSynchronizationManager, @Scheduled.
+             The consuming service brings the runtime. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- the module's own tests drive a REAL Spring transaction manager over a real H2, so the
+             rollback/commit claims are proven, not asserted against a mock -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit5</artifactId>
+            <version>2.29.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.3.232</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.16</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- under target/, so mvn clean removes them and reports never accumulate stale runs -->
+                        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <!-- allure reports everywhere -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>2.17.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
