@@ -110,7 +110,12 @@ class SpringOutboxTest {
 
         assertEquals(1, sent.size());
         assertEquals("memes-events", sent.getFirst().topic());
-        assertTrue(published("e-2"), "a confirmed delivery must mark the row");
+        // The confirmation callback runs on the producer's I/O thread, where JDBC is not allowed
+        // any more (a blocked connection pool used to freeze all of the service's Kafka sends), so
+        // the mark waits for the republisher's pass — which is what drainConfirmations stands for.
+        assertFalse(published("e-2"), "not from the producer's thread");
+        outbox.publisher().drainConfirmations();
+        assertTrue(published("e-2"), "a confirmed delivery must mark the row — on the pass");
     }
 
     @Test
@@ -120,6 +125,7 @@ class SpringOutboxTest {
 
         assertEquals(1, sent.size());
         assertEquals(1, rows());
+        outbox.publisher().drainConfirmations();
         assertTrue(published("e-3"));
     }
 
@@ -152,14 +158,14 @@ class SpringOutboxTest {
         brokerConfirms = false;
         tx.executeWithoutResult(status -> outbox.announce(event("e-5", "orphan")));
         assertFalse(published("e-5"));
-        backdateBySeconds(60);
+        backdateBySeconds(120);   // minAge default is 60s since 2026-07-28
         brokerConfirms = true;
 
         // the same pass a ScheduledOutboxRepublisher bean would run every 15s
         OutboxRepublisher.Pass pass = new OutboxRepublisher(outbox.outbox(), outbox.publisher(),
                 RepublisherSettings.defaults(Duration.ofHours(24))).runOnce();
 
-        assertEquals(new OutboxRepublisher.Pass(0, 1, 1), pass);
+        assertEquals(new OutboxRepublisher.Pass(0, 0, 1, 1, 0), pass);
         assertTrue(published("e-5"));
     }
 
@@ -208,12 +214,14 @@ class SpringOutboxTest {
 
     private boolean published(String id) {
         return queryInt("SELECT COUNT(*) FROM meme_events_outbox WHERE id = '" + id
-                + "' AND published = TRUE") == 1;
+                + "' AND published_at IS NOT NULL") == 1;
     }
 
     private void backdateBySeconds(long seconds) {
+        // published_at moves too: retention measures its window from the delivery, so ageing only
+        // the creation would produce a row state the production code cannot reach
         execute("UPDATE meme_events_outbox SET created_at = DATEADD('SECOND', -" + seconds
-                + ", created_at)");
+                + ", created_at), published_at = DATEADD('SECOND', -" + seconds + ", published_at)");
     }
 
     private int queryInt(String sql) {
