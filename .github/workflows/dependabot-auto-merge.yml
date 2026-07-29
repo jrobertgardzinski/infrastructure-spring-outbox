@@ -1,0 +1,52 @@
+name: Dependabot auto-merge (patch only)
+
+# Merges Dependabot's PATCH updates once CI has gone green, and nothing else.
+#
+# WHY workflow_run RATHER THAN `gh pr merge --auto`. The `--auto` flag hands the merge to GitHub,
+# which then holds it until the branch's REQUIRED checks pass — and this repository has no branch
+# protection, so "required checks" is an empty set and auto-merge would land the bump the instant
+# it was requested, tested or not. Adding protection would fix that and break something else: it
+# would also stand between the owner and their own pushes to main, which is how this estate is
+# actually worked on. So the wait is implemented here instead: this job only starts when CI has
+# already finished, and only merges when it finished SUCCESSFULLY.
+#
+# WHY THE BRANCH NAME DECIDES WHAT IS A PATCH. dependabot.yml puts every patch-level update into a
+# group called "patches", and a grouped PR always branches as dependabot/<ecosystem>/patches-*.
+# Minor and major updates are not in that group, so they arrive on differently-named branches and
+# are never touched here — they wait for a human, which is the point of drawing the line at patch.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    # every condition matters: a green run, of a PULL REQUEST (not a push to main), on a branch
+    # Dependabot created, carrying only patch-level updates
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/') &&
+      contains(github.event.workflow_run.head_branch, '/patches-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Merge the patch bump CI just proved
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          number=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open \
+                     --json number --jq '.[0].number // empty')
+          if [ -z "$number" ]; then
+            echo "no open PR for $BRANCH — already merged or closed, nothing to do"
+            exit 0
+          fi
+          # squash: one bump, one commit on main, the PR body kept as the message
+          gh pr merge "$number" --repo "$REPO" --squash --delete-branch

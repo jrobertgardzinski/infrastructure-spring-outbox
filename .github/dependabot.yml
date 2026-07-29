@@ -1,0 +1,24 @@
+version: 2
+
+# Weekly, and PATCH updates arrive as ONE grouped pull request so the auto-merge workflow
+# has a single thing to decide about. Minor and major updates stay ungrouped and unmerged:
+# they change behaviour, and behaviour is a person's call.
+#
+# Kept to the ecosystems this repository actually carries — see the estate survey of
+# 2026-07-29: the pure-domain libraries (slf4j + junit) and the stdlib-only Python services
+# have nothing here worth a weekly pull request.
+updates:
+  # pins Spring Framework directly, despite being a small adapter
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    groups:
+      patches:
+        patterns: ["*"]
+        update-types: ["patch"]
