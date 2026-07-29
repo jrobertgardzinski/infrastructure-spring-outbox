@@ -23,8 +23,11 @@
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- the Spring Framework version behind Spring Boot 3.5.x, the estate's Boot line -->
-        <spring.version>6.2.19</spring.version>
+        <!-- The Spring Framework version behind Spring Boot 4.1.0, the estate's Boot line since
+             2026-07-29. It says 4.1.0 rather than 3.5.x because both consumers - memes and
+             comments - moved that day; compiling against what this library actually runs on is the
+             point of pinning it at all, and a stale number here would be a claim, not a constraint. -->
+        <spring.version>7.0.8</spring.version>
         <junit.version>6.1.2</junit.version>
     </properties>
 
