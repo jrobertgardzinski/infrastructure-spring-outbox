@@ -22,3 +22,12 @@ updates:
       patches:
         patterns: ["*"]
         update-types: ["patch"]
+    ignore:
+      # The framework's own MAJOR line is a migration you plan, not a Monday pull request — and
+      # leaving it un-ignored costs more than the noise. Dependabot always targets the LATEST
+      # version, so while 4.x exists it offers 3.5.3 -> 4.1.0 and NEVER 3.5.3 -> 3.5.16: the
+      # thirteen patch releases of the supported line, the ones carrying the security fixes, would
+      # simply never be proposed. Ignoring the major is what makes the patch line visible at all.
+      # (Found the hard way on 2026-07-29, from Dependabot's first run against this very file.)
+      - dependency-name: "org.springframework:*"
+        update-types: ["version-update:semver-major"]
