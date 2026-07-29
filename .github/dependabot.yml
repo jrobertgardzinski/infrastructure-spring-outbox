@@ -7,6 +7,11 @@ version: 2
 # Kept to the ecosystems this repository actually carries — see the estate survey of
 # 2026-07-29: the pure-domain libraries (slf4j + junit) and the stdlib-only Python services
 # have nothing here worth a weekly pull request.
+# open-pull-requests-limit was 5 until 2026-07-29 and that number silently cost us a bump:
+# microservice-memes had five maven PRs open, so the cucumber 7.20.1 -> 7.34.6 update was
+# never proposed at all and the service sat a year behind its sibling until a manual sweep
+# found it. A truncated queue looks exactly like an empty one - nothing reports the
+# difference - so the limit is 10 now.
 updates:
   # pins Spring Framework directly, despite being a small adapter
   - package-ecosystem: maven
@@ -16,7 +21,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Warsaw
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels: ["dependencies"]
     groups:
       patches:
