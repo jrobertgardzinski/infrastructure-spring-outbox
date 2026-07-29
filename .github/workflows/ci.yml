@@ -1,0 +1,41 @@
+name: CI
+
+# The Spring adapter for the transactional outbox. Unlike the core it is NOT self-contained: it
+# compiles against com.jrobertgardzinski:transactional-outbox:1.0.0-SNAPSHOT, which lives in its own
+# repository and is never published to a registry — so the core is checked out and installed first,
+# exactly as the aggregator does it on a developer's disk.
+#
+# Pinned to the core's main. A change that breaks the adapter therefore turns this build red on the
+# adapter's next push rather than at some later reactor run, which is the point of having a gate
+# here at all: both repositories changed together on 2026-07-28 and 07-29, and neither had one.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: infrastructure-spring-outbox
+      - uses: actions/checkout@v4
+        with:
+          repository: jrobertgardzinski/transactional-outbox
+          path: transactional-outbox
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Install the core the adapter adapts
+        run: mvn -B -q --no-transfer-progress install -DskipTests
+        working-directory: transactional-outbox
+      - name: Build and test
+        run: mvn -B --no-transfer-progress clean verify
+        working-directory: infrastructure-spring-outbox
