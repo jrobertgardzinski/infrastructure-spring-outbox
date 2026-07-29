@@ -25,7 +25,29 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- the Spring Framework version behind Spring Boot 3.5.x, the estate's Boot line -->
         <spring.version>6.2.19</spring.version>
+        <junit.version>6.1.2</junit.version>
     </properties>
+
+    <!--
+      The JUnit BOM is imported, not merely a version on junit-jupiter, and the reason is a real
+      failure rather than tidiness. JUnit 6 renumbered the platform to match Jupiter (6.x), while
+      allure-junit5 still declares a transitive junit-platform-launcher from the 1.x line. Maven's
+      nearest-wins then puts a 1.10 launcher next to a 6.1 engine, and surefire dies during
+      discovery with the unhelpful "TestEngine with ID 'junit-jupiter' failed to discover tests".
+      Importing the BOM pins every junit-platform-* artifact to one generation, so the skew cannot
+      reappear the next time a test library is bumped.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -61,19 +83,18 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.11.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-junit5</artifactId>
-            <version>2.29.0</version>
+            <version>2.35.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.3.232</version>
+            <version>2.4.240</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -89,7 +110,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.15.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -106,7 +127,7 @@
             <plugin>
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-maven</artifactId>
-                <version>2.17.0</version>
+                <version>3.0.3</version>
             </plugin>
         </plugins>
     </build>
