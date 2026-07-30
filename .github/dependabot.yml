@@ -36,3 +36,19 @@ updates:
       # (Found the hard way on 2026-07-29, from Dependabot's first run against this very file.)
       - dependency-name: "org.springframework:*"
         update-types: ["version-update:semver-major"]
+
+  # The workflow pins of this repository (actions/checkout and friends). Added 2026-07-30: nothing
+  # watched them, so they sat on majors that were two to three releases behind.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 10
+    labels: ["dependencies"]
+    groups:
+      patches:
+        patterns: ["*"]
+        update-types: ["patch"]
